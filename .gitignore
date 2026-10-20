@@ -1,0 +1,29 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.swp
+TestResults/
+publish/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+npm-debug.log*
+
+# Secretos y configuración local
+appsettings.*.local.json
+.env
+.env.local
+*.pfx
+plan.md
+
+# Archivos temporales de Office
+~$*
+
+# Sistema
+.DS_Store
+Thumbs.db
