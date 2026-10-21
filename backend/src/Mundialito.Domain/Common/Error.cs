@@ -16,7 +16,7 @@ public enum ErrorType
 /// Immutable description of a failure. <see cref="Code"/> is a stable, machine-readable
 /// identifier in English; <see cref="Message"/> is the user-facing text in Spanish.
 /// </summary>
-public sealed record Error(string Code, string Message, ErrorType Type = ErrorType.Failure)
+public record Error(string Code, string Message, ErrorType Type = ErrorType.Failure)
 {
     public static readonly Error None = new(string.Empty, string.Empty);
 
