@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Mundialito.Api/Mundialito.Api.csproj" />
+    <Project Path="src/Mundialito.Application/Mundialito.Application.csproj" />
+    <Project Path="src/Mundialito.Domain/Mundialito.Domain.csproj" />
+    <Project Path="src/Mundialito.Infrastructure/Mundialito.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Mundialito.UnitTests/Mundialito.UnitTests.csproj" />
+  </Folder>
+</Solution>
