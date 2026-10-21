@@ -18,7 +18,7 @@ public class LayerDependencyTests
     [Fact]
     public void Domain_ShouldNotDependOnAnyOtherLayer()
     {
-        var references = GetReferencedProjectNames(Domain.AssemblyReference.Assembly);
+        var references = GetReferencedProjectNames(global::Mundialito.Domain.AssemblyReference.Assembly);
 
         references.ShouldBeEmpty();
     }
@@ -26,7 +26,7 @@ public class LayerDependencyTests
     [Fact]
     public void Application_ShouldDependOnlyOnDomain()
     {
-        var references = GetReferencedProjectNames(Application.AssemblyReference.Assembly);
+        var references = GetReferencedProjectNames(global::Mundialito.Application.AssemblyReference.Assembly);
 
         references.ShouldAllBe(name => name == DomainName);
     }
@@ -34,7 +34,7 @@ public class LayerDependencyTests
     [Fact]
     public void Infrastructure_ShouldNotDependOnApi()
     {
-        var references = GetReferencedProjectNames(Infrastructure.AssemblyReference.Assembly);
+        var references = GetReferencedProjectNames(global::Mundialito.Infrastructure.AssemblyReference.Assembly);
 
         references.ShouldNotContain(ApiName);
     }
@@ -44,9 +44,9 @@ public class LayerDependencyTests
     {
         var layers = new[]
         {
-            Domain.AssemblyReference.Assembly,
-            Application.AssemblyReference.Assembly,
-            Infrastructure.AssemblyReference.Assembly,
+            global::Mundialito.Domain.AssemblyReference.Assembly,
+            global::Mundialito.Application.AssemblyReference.Assembly,
+            global::Mundialito.Infrastructure.AssemblyReference.Assembly,
         };
 
         foreach (var layer in layers)
