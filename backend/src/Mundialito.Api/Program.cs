@@ -1,4 +1,15 @@
+using Mundialito.Application;
+using Mundialito.Infrastructure;
+
 var builder = WebApplication.CreateBuilder(args);
+
+var connectionString = builder.Configuration.GetConnectionString("Database")
+    ?? throw new InvalidOperationException(
+        "Connection string 'Database' is not configured. Set ConnectionStrings:Database via user secrets or environment variables.");
+
+builder.Services
+    .AddApplication()
+    .AddInfrastructure(connectionString);
 
 builder.Services.AddOpenApi();
 

@@ -1,10 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Mundialito.Application\Mundialito.Application.csproj" />
+    <InternalsVisibleTo Include="Mundialito.UnitTests" />
   </ItemGroup>
 
-  <PropertyGroup>
-  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.13" />
+    <!-- Pinned to a patched version: the transitive 9.0.11 has known vulnerabilities (NU1902/NU1903). -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Mundialito.Application\Mundialito.Application.csproj" />
+  </ItemGroup>
 
 </Project>

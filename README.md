@@ -11,13 +11,14 @@ backend/
   Mundialito.slnx
   Directory.Build.props        # configuración de compilación compartida
   global.json                  # versión del SDK (.NET 10)
+  .config/dotnet-tools.json    # herramienta local dotnet-ef
   src/
     Mundialito.Domain          # entidades, reglas de negocio, eventos, Result
     Mundialito.Application     # casos de uso (commands/queries), contratos
-    Mundialito.Infrastructure  # EF Core, Dapper, Unit of Work, seed
+    Mundialito.Infrastructure  # EF Core, Dapper, Unit of Work, migraciones, seed
     Mundialito.Api             # endpoints REST, middleware, composición
   tests/
-    Mundialito.UnitTests       # xUnit + Shouldly
+    Mundialito.UnitTests       # xUnit + Shouldly + NSubstitute (SQLite en memoria para persistencia)
 frontend/                      # Next.js (pendiente)
 docs/                          # diagrama de arquitectura (pendiente)
 postman/                       # colección y entorno (pendiente)
@@ -34,6 +35,30 @@ contratos de `Application`, y `Api` solo compone y orquesta.
 - Node.js 20+ (frontend)
 - Docker y Docker Compose
 
+## Configuración de la base de datos
+
+La API lee la cadena de conexión de `ConnectionStrings:Database`. En desarrollo se guarda con
+user secrets para que nunca entre al repositorio:
+
+```bash
+cd backend
+dotnet user-secrets set "ConnectionStrings:Database" "Server=localhost,1433;Database=Mundialito;User Id=sa;Password=<clave>;TrustServerCertificate=True" --project src/Mundialito.Api
+```
+
+Crear o actualizar el esquema con las migraciones de EF Core (la herramienta `dotnet-ef` se
+restaura desde el manifiesto local):
+
+```bash
+dotnet tool restore
+dotnet ef database update --project src/Mundialito.Infrastructure --startup-project src/Mundialito.Api --connection "Server=localhost,1433;Database=Mundialito;User Id=sa;Password=<clave>;TrustServerCertificate=True"
+```
+
+Agregar una migración nueva tras cambiar el modelo:
+
+```bash
+dotnet ef migrations add <Nombre> --project src/Mundialito.Infrastructure --startup-project src/Mundialito.Api --output-dir Persistence/Migrations
+```
+
 ## Ejecutar el backend
 
 ```bash
@@ -45,6 +70,7 @@ dotnet run --project src/Mundialito.Api
 
 La API queda en `http://localhost:5000`. Verificación rápida: `GET /health`.
 
-## Configuración
+## Variables de entorno (Docker)
 
-Copiar `.env.example` a `.env` y ajustar los valores. El archivo `.env` no se versiona.
+Copiar `.env.example` a `.env` y ajustar los valores. El archivo `.env` no se versiona y lo
+consume Docker Compose.
