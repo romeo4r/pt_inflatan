@@ -8,7 +8,6 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <AnalysisLevel>latest</AnalysisLevel>
-    <InvariantGlobalization>true</InvariantGlobalization>
     <!-- Required for IDE0005 (unused usings) to run at build time. CS1591 (missing XML doc) is noise here. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>

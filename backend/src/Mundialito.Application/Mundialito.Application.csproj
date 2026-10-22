@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Mundialito.Domain\Mundialito.Domain.csproj" />
+    <InternalsVisibleTo Include="Mundialito.UnitTests" />
   </ItemGroup>
 
   <ItemGroup>
@@ -10,7 +10,8 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
   </ItemGroup>
 
-  <PropertyGroup>
-  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Mundialito.Domain\Mundialito.Domain.csproj" />
+  </ItemGroup>
 
 </Project>
