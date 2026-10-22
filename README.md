@@ -68,7 +68,17 @@ dotnet test
 dotnet run --project src/Mundialito.Api
 ```
 
-La API queda en `http://localhost:5000`. Verificación rápida: `GET /health`.
+La API queda en `http://localhost:5000`.
+
+| Ruta | Descripción |
+|---|---|
+| `GET /health` | Estado de la API y de la base de datos (JSON) |
+| `GET /scalar/v1` | Documentación interactiva de la API (solo en desarrollo) |
+| `GET /openapi/v1.json` | Documento OpenAPI (solo en desarrollo) |
+
+Cada respuesta incluye las cabeceras `X-Correlation-Id` (se respeta la enviada por el cliente) y
+`X-Trace-Id`. Los errores siguen RFC 9457 (ProblemDetails) con `code` en inglés, mensaje en
+español en `detail`, y `errors` por campo cuando falla la validación.
 
 ## Variables de entorno (Docker)
 

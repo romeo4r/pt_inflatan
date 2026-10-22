@@ -1,6 +1,14 @@
 @Mundialito.Api_HostAddress = http://localhost:5000
 
+### Health (API + database)
 GET {{Mundialito.Api_HostAddress}}/health
 Accept: application/json
+
+### Correlation id round-trip
+GET {{Mundialito.Api_HostAddress}}/health
+X-Correlation-Id: demo-123
+
+### OpenAPI document
+GET {{Mundialito.Api_HostAddress}}/openapi/v1.json
 
 ###

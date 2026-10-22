@@ -42,6 +42,9 @@ public static class DependencyInjection
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
         services.AddSingleton<IClock, SystemClock>();
 
+        // Exposed through /health so orchestrators wait for the database before routing traffic.
+        services.AddHealthChecks().AddDbContextCheck<ApplicationDbContext>("database");
+
         return services;
     }
 }
