@@ -17,6 +17,11 @@ internal sealed class PatchTeamCommandHandler(
             return Result.Failure(TeamErrors.NotFound(command.Id));
         }
 
+        if (command.ExpectedRowVersion is not null && !team.HasVersion(command.ExpectedRowVersion))
+        {
+            return Result.Failure(PersistenceErrors.ConcurrencyConflict);
+        }
+
         // Merge: a null member means "keep the current value".
         var name = command.Name ?? team.Name;
         var code = command.Code ?? team.Code;
@@ -51,8 +56,8 @@ internal sealed class PatchTeamCommandHandler(
                 break;
         }
 
-        await unitOfWork.CommitAsync(cancellationToken);
+        var commit = await unitOfWork.CommitAsync(cancellationToken);
 
-        return Result.Success();
+        return commit.IsFailure ? Result.Failure(commit.Error) : Result.Success();
     }
 }

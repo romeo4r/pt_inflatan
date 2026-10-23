@@ -30,7 +30,8 @@ internal sealed class PlayerReadStore(IDbConnectionFactory connectionFactory) : 
             p.BirthDate,
             p.IsActive,
             p.CreatedAtUtc,
-            p.UpdatedAtUtc
+            p.UpdatedAtUtc,
+            p.RowVersion
         FROM Players p
         INNER JOIN Teams t ON t.Id = p.TeamId
         """;

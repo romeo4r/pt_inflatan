@@ -1,11 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Mundialito.Application.Abstractions.Events;
+using Mundialito.Application.Abstractions.Idempotency;
 using Mundialito.Application.Abstractions.Persistence;
 using Mundialito.Application.Abstractions.ReadStores;
 using Mundialito.Application.Abstractions.Time;
 using Mundialito.Infrastructure.Events;
 using Mundialito.Infrastructure.Persistence;
+using Mundialito.Infrastructure.Persistence.Idempotency;
 using Mundialito.Infrastructure.Persistence.Repositories;
 using Mundialito.Infrastructure.ReadModel;
 using Mundialito.Infrastructure.Time;
@@ -39,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<IPlayerReadStore, PlayerReadStore>();
         services.AddScoped<IMatchReadStore, MatchReadStore>();
 
+        services.AddScoped<IIdempotencyStore, IdempotencyStore>();
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
         services.AddSingleton<IClock, SystemClock>();
 

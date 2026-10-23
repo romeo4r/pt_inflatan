@@ -33,7 +33,8 @@ internal sealed class MatchReadStore(IDbConnectionFactory connectionFactory) : I
             m.AwayScore,
             m.FinishedAtUtc,
             m.CreatedAtUtc,
-            m.UpdatedAtUtc
+            m.UpdatedAtUtc,
+            m.RowVersion
         FROM Matches m
         INNER JOIN Teams ht ON ht.Id = m.HomeTeamId
         INNER JOIN Teams at ON at.Id = m.AwayTeamId

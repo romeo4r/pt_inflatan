@@ -17,6 +17,12 @@ internal sealed class UpdateTeamCommandHandler(
             return Result.Failure(TeamErrors.NotFound(command.Id));
         }
 
+        // Stale client: it read an older version than the one stored now.
+        if (command.ExpectedRowVersion is not null && !team.HasVersion(command.ExpectedRowVersion))
+        {
+            return Result.Failure(PersistenceErrors.ConcurrencyConflict);
+        }
+
         if (await teamRepository.ExistsByNameAsync(command.Name!.Trim(), excludeId: team.Id, cancellationToken))
         {
             return Result.Failure(TeamErrors.NameAlreadyExists(command.Name.Trim()));
@@ -43,8 +49,9 @@ internal sealed class UpdateTeamCommandHandler(
             team.Deactivate();
         }
 
-        await unitOfWork.CommitAsync(cancellationToken);
+        // The database re-checks the version at write time, which covers the race between read and commit.
+        var commit = await unitOfWork.CommitAsync(cancellationToken);
 
-        return Result.Success();
+        return commit.IsFailure ? Result.Failure(commit.Error) : Result.Success();
     }
 }

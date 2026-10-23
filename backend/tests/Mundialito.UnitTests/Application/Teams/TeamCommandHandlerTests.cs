@@ -15,7 +15,24 @@ public class TeamCommandHandlerTests
     private readonly IMatchRepository _matches = Substitute.For<IMatchRepository>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
 
+    public TeamCommandHandlerTests()
+    {
+        _unitOfWork.CommitAsync(Arg.Any<CancellationToken>()).Returns(Result.Success(1));
+    }
+
     // ---------- Create ----------
+
+    [Fact]
+    public async Task Create_WhenCommitReportsConflict_ShouldPropagateIt()
+    {
+        _unitOfWork.CommitAsync(Arg.Any<CancellationToken>()).Returns(Result.Failure<int>(PersistenceErrors.UniqueViolation));
+        var handler = new CreateTeamCommandHandler(_teams, _unitOfWork);
+
+        var result = await handler.Handle(new CreateTeamCommand("Finanzas", "FIN", null), CancellationToken.None);
+
+        result.IsFailure.ShouldBeTrue();
+        result.Error.ShouldBe(PersistenceErrors.UniqueViolation);
+    }
 
     [Fact]
     public async Task Create_WithUniqueData_ShouldAddAndCommit()
@@ -122,7 +139,47 @@ public class TeamCommandHandlerTests
         team.Name.ShouldBe("Finanzas");
     }
 
+    [Fact]
+    public async Task Update_WithStaleRowVersion_ShouldConflictBeforeTouchingAnything()
+    {
+        var team = ExistingTeam("Finanzas", "FIN");
+        var handler = new UpdateTeamCommandHandler(_teams, _unitOfWork);
+
+        var result = await handler.Handle(
+            new UpdateTeamCommand(team.Id, "Contabilidad", "CON", null, true, ExpectedRowVersion: [9, 9, 9]),
+            CancellationToken.None);
+
+        result.Error.ShouldBe(PersistenceErrors.ConcurrencyConflict);
+        team.Name.ShouldBe("Finanzas");
+        await _unitOfWork.DidNotReceive().CommitAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Update_WhenCommitReportsConcurrencyConflict_ShouldPropagateIt()
+    {
+        var team = ExistingTeam("Finanzas", "FIN");
+        _unitOfWork.CommitAsync(Arg.Any<CancellationToken>()).Returns(Result.Failure<int>(PersistenceErrors.ConcurrencyConflict));
+        var handler = new UpdateTeamCommandHandler(_teams, _unitOfWork);
+
+        var result = await handler.Handle(new UpdateTeamCommand(team.Id, "Contabilidad", "CON", null, true), CancellationToken.None);
+
+        result.Error.ShouldBe(PersistenceErrors.ConcurrencyConflict);
+    }
+
     // ---------- Patch ----------
+
+    [Fact]
+    public async Task Patch_WithStaleRowVersion_ShouldConflict()
+    {
+        var team = ExistingTeam("Finanzas", "FIN");
+        var handler = new PatchTeamCommandHandler(_teams, _unitOfWork);
+
+        var result = await handler.Handle(
+            new PatchTeamCommand(team.Id, null, null, null, false, ExpectedRowVersion: [1]), CancellationToken.None);
+
+        result.Error.ShouldBe(PersistenceErrors.ConcurrencyConflict);
+        team.IsActive.ShouldBeTrue();
+    }
 
     [Fact]
     public async Task Patch_ShouldOnlyChangeProvidedFields()

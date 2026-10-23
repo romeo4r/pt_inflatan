@@ -19,7 +19,8 @@ public sealed record MatchResponse(
     int? AwayScore,
     DateTime? FinishedAtUtc,
     DateTime CreatedAtUtc,
-    DateTime? UpdatedAtUtc);
+    DateTime? UpdatedAtUtc,
+    byte[]? RowVersion);
 
 /// <summary>Single match with its goals. Returned by the detail endpoint only.</summary>
 public sealed record MatchDetailResponse(MatchResponse Match, IReadOnlyList<GoalResponse> Goals);

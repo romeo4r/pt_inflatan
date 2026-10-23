@@ -11,7 +11,8 @@ internal sealed class CreateTeamCommandHandler(
 {
     public async Task<Result<Guid>> Handle(CreateTeamCommand command, CancellationToken cancellationToken)
     {
-        // Uniqueness spans aggregates, so it is checked here (and enforced by unique indexes as backstop).
+        // Uniqueness spans aggregates, so it is checked here; the unique index is the backstop
+        // for two concurrent creates, and the Unit of Work turns that violation into a 409 too.
         if (await teamRepository.ExistsByNameAsync(command.Name!.Trim(), cancellationToken: cancellationToken))
         {
             return TeamErrors.NameAlreadyExists(command.Name.Trim());
@@ -30,7 +31,12 @@ internal sealed class CreateTeamCommandHandler(
         }
 
         teamRepository.Add(teamResult.Value);
-        await unitOfWork.CommitAsync(cancellationToken);
+
+        var commit = await unitOfWork.CommitAsync(cancellationToken);
+        if (commit.IsFailure)
+        {
+            return commit.Error;
+        }
 
         return teamResult.Value.Id;
     }

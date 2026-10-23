@@ -1,6 +1,9 @@
 namespace Mundialito.Application.Teams;
 
-/// <summary>Read model for a team. Shaped for the API, not for the domain.</summary>
+/// <summary>
+/// Read model for a team. <paramref name="RowVersion"/> is the concurrency token the client must
+/// echo back (as If-Match) when updating; it serializes to JSON as a base64 string.
+/// </summary>
 public sealed record TeamResponse(
     Guid Id,
     string Name,
@@ -9,4 +12,5 @@ public sealed record TeamResponse(
     bool IsActive,
     int PlayerCount,
     DateTime CreatedAtUtc,
-    DateTime? UpdatedAtUtc);
+    DateTime? UpdatedAtUtc,
+    byte[]? RowVersion);

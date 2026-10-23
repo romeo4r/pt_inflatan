@@ -80,6 +80,31 @@ Cada respuesta incluye las cabeceras `X-Correlation-Id` (se respeta la enviada p
 `X-Trace-Id`. Los errores siguen RFC 9457 (ProblemDetails) con `code` en inglés, mensaje en
 español en `detail`, y `errors` por campo cuando falla la validación.
 
+### Idempotencia en POST
+
+Los endpoints de creación exigen la cabecera `Idempotency-Key` (1 a 128 caracteres: letras,
+números, `-`, `_`, `.`, `:`). La llave se persiste en la tabla `IdempotencyKeys` junto con un hash
+del método, la ruta y el cuerpo, y con la respuesta original.
+
+| Situación | Respuesta |
+|---|---|
+| Primera vez | Se ejecuta la operación y se guarda la respuesta |
+| Misma llave y mismo cuerpo | Se devuelve la respuesta guardada, con `Idempotent-Replayed: true`, sin ejecutar nada |
+| Misma llave y otro cuerpo | `409 Idempotency.PayloadMismatch` |
+| Misma llave mientras la primera sigue en curso | `409 Idempotency.RequestInProgress` |
+| Sin cabecera | `400 Idempotency.KeyRequired` |
+
+Las llaves se conservan 24 horas. Un error 5xx libera la llave para permitir el reintento.
+
+### Concurrencia optimista
+
+Teams, Players y Matches tienen una columna `RowVersion` (rowversion de SQL Server). Los GET por
+id devuelven la cabecera `ETag` y el campo `rowVersion` en el cuerpo. PUT y PATCH aceptan
+`If-Match` con ese valor: si otro usuario modificó el registro entre la lectura y la escritura, la
+API responde `409 Concurrency.Conflict` y el cliente debe recargar. Sin `If-Match`, la escritura
+procede sin esa verificación. Las violaciones de índice único por carreras concurrentes también
+responden `409` (`Database.UniqueViolation`).
+
 ## Variables de entorno (Docker)
 
 Copiar `.env.example` a `.env` y ajustar los valores. El archivo `.env` no se versiona y lo

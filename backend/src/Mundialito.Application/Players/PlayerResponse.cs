@@ -15,7 +15,8 @@ public sealed record PlayerResponse(
     DateOnly? BirthDate,
     bool IsActive,
     DateTime CreatedAtUtc,
-    DateTime? UpdatedAtUtc)
+    DateTime? UpdatedAtUtc,
+    byte[]? RowVersion)
 {
     public string FullName => $"{FirstName} {LastName}";
 }

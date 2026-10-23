@@ -24,8 +24,9 @@ internal sealed class DeleteTeamCommandHandler(
         }
 
         teamRepository.Remove(team);
-        await unitOfWork.CommitAsync(cancellationToken);
 
-        return Result.Success();
+        var commit = await unitOfWork.CommitAsync(cancellationToken);
+
+        return commit.IsFailure ? Result.Failure(commit.Error) : Result.Success();
     }
 }

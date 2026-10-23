@@ -34,10 +34,12 @@ public sealed record CreateTeamRequest(string? Name, string? Code, string? Coach
 
 public sealed record UpdateTeamRequest(string? Name, string? Code, string? Coach, bool IsActive = true)
 {
-    public UpdateTeamCommand ToCommand(Guid id) => new(id, Name, Code, Coach, IsActive);
+    public UpdateTeamCommand ToCommand(Guid id, byte[]? expectedRowVersion) =>
+        new(id, Name, Code, Coach, IsActive, expectedRowVersion);
 }
 
 public sealed record PatchTeamRequest(string? Name, string? Code, string? Coach, bool? IsActive)
 {
-    public PatchTeamCommand ToCommand(Guid id) => new(id, Name, Code, Coach, IsActive);
+    public PatchTeamCommand ToCommand(Guid id, byte[]? expectedRowVersion) =>
+        new(id, Name, Code, Coach, IsActive, expectedRowVersion);
 }

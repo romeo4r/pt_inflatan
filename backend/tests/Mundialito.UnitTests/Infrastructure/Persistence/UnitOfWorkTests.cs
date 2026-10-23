@@ -37,9 +37,10 @@ public sealed class UnitOfWorkTests : IDisposable
         teams.Add(team);
         players.Add(player);
 
-        var affected = await unitOfWork.CommitAsync();
+        var commit = await unitOfWork.CommitAsync();
 
-        affected.ShouldBe(2);
+        commit.IsSuccess.ShouldBeTrue();
+        commit.Value.ShouldBe(2);
         await using var verification = _factory.CreateContext();
         (await verification.Teams.CountAsync()).ShouldBe(1);
         (await verification.Players.SingleAsync()).TeamId.ShouldBe(team.Id);
@@ -95,7 +96,7 @@ public sealed class UnitOfWorkTests : IDisposable
     }
 
     [Fact]
-    public async Task CommitAsync_WhenDispatcherFails_ShouldRollBackEverything()
+    public async Task CommitAsync_WhenDispatcherFails_ShouldRollBackEverythingAndRethrow()
     {
         await using var context = _factory.CreateContext();
         var unitOfWork = CreateUnitOfWork(context);
@@ -131,16 +132,16 @@ public sealed class UnitOfWorkTests : IDisposable
                 }
             });
 
-        var affected = await unitOfWork.CommitAsync();
+        var commit = await unitOfWork.CommitAsync();
 
-        affected.ShouldBe(2);
+        commit.Value.ShouldBe(2);
         await _dispatcher.Received(2).DispatchAsync(Arg.Any<IReadOnlyCollection<IDomainEvent>>(), Arg.Any<CancellationToken>());
         await using var verification = _factory.CreateContext();
         (await verification.Teams.CountAsync()).ShouldBe(2);
     }
 
     [Fact]
-    public async Task CommitAsync_WhenUniqueIndexIsViolated_ShouldThrowAndPersistNothing()
+    public async Task CommitAsync_WhenUniqueIndexIsViolated_ShouldReturnConflictAndPersistNothing()
     {
         await using var context = _factory.CreateContext();
         var unitOfWork = CreateUnitOfWork(context);
@@ -148,8 +149,35 @@ public sealed class UnitOfWorkTests : IDisposable
         await unitOfWork.CommitAsync();
 
         context.Teams.Add(Team.Create("Otro", "FIN", null).Value);
+        var commit = await unitOfWork.CommitAsync();
 
-        await Should.ThrowAsync<DbUpdateException>(() => unitOfWork.CommitAsync());
+        commit.IsFailure.ShouldBeTrue();
+        commit.Error.ShouldBe(PersistenceErrors.UniqueViolation);
+        commit.Error.Type.ShouldBe(ErrorType.Conflict);
+        await using var verification = _factory.CreateContext();
+        (await verification.Teams.CountAsync()).ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task CommitAsync_WhenRowVersionIsStale_ShouldReturnConcurrencyConflict()
+    {
+        await using var context = _factory.CreateContext();
+        var unitOfWork = CreateUnitOfWork(context);
+        var team = Team.Create("Finanzas", "FIN", null).Value;
+        context.Teams.Add(team);
+        await unitOfWork.CommitAsync();
+
+        // Pretend the row was read with a version that no longer matches the stored one
+        // (SQLite has no rowversion, so the stored value is NULL and any non-null original differs).
+        team.Update("Finanzas FC", "FIN", null);
+        context.Entry(team).Property(t => t.RowVersion).OriginalValue = [1, 2, 3];
+
+        var commit = await unitOfWork.CommitAsync();
+
+        commit.IsFailure.ShouldBeTrue();
+        commit.Error.ShouldBe(PersistenceErrors.ConcurrencyConflict);
+        await using var verification = _factory.CreateContext();
+        (await verification.Teams.SingleAsync()).Name.ShouldBe("Finanzas");
     }
 
     [Fact]
@@ -166,7 +194,7 @@ public sealed class UnitOfWorkTests : IDisposable
         _dispatcher.ClearReceivedCalls();
 
         match.RegisterResult(1, 0, [new GoalEntry(scorer.Id, home.Id, 33)], Now.AddHours(2)).IsSuccess.ShouldBeTrue();
-        await unitOfWork.CommitAsync();
+        (await unitOfWork.CommitAsync()).IsSuccess.ShouldBeTrue();
 
         await _dispatcher.Received(1).DispatchAsync(
             Arg.Is<IReadOnlyCollection<IDomainEvent>>(events => events.Single() is MatchResultRegisteredDomainEvent),

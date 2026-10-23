@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json.Serialization;
 using Mundialito.Api.Common;
+using Mundialito.Api.Idempotency;
 using Mundialito.Api.Middleware;
 using Mundialito.Application;
 using Mundialito.Infrastructure;
@@ -71,6 +72,9 @@ try
         });
 
     app.UseCors();
+
+    // After routing (so endpoint metadata is known) and after correlation (so its logs carry the ids).
+    app.UseMiddleware<IdempotencyMiddleware>();
 
     if (app.Environment.IsDevelopment())
     {

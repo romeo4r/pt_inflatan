@@ -97,5 +97,5 @@ public class QueryHandlerTests
     }
 
     private static TeamResponse SampleTeam() =>
-        new(Guid.CreateVersion7(), "Finanzas", "FIN", null, true, 5, Now, null);
+        new(Guid.CreateVersion7(), "Finanzas", "FIN", null, true, 5, Now, null, null);
 }

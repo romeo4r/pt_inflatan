@@ -22,10 +22,11 @@ GET {{host}}/api/teams?search=fin&isActive=true
 ### List teams: invalid sort key -> 400 validation problem
 GET {{host}}/api/teams?sortBy=password
 
-### Create team -> 201 + Location
+### Create team -> 201 + Location (Idempotency-Key is required)
 # @name createTeam
 POST {{host}}/api/teams
 Content-Type: application/json
+Idempotency-Key: {{$guid}}
 
 {
   "name": "Finanzas FC",
@@ -33,30 +34,63 @@ Content-Type: application/json
   "coach": "Ana Pérez"
 }
 
-### Create duplicate -> 409
+### Create without Idempotency-Key -> 400 Idempotency.KeyRequired
 POST {{host}}/api/teams
 Content-Type: application/json
 
 {
-  "name": "Finanzas FC",
+  "name": "Sin llave",
+  "code": "SIN"
+}
+
+### Idempotency replay: same key + same body twice -> both 201, second has Idempotent-Replayed: true
+POST {{host}}/api/teams
+Content-Type: application/json
+Idempotency-Key: demo-replay-001
+
+{
+  "name": "Tecnología City",
+  "code": "TEC"
+}
+
+### Same key with a different body -> 409 Idempotency.PayloadMismatch
+POST {{host}}/api/teams
+Content-Type: application/json
+Idempotency-Key: demo-replay-001
+
+{
+  "name": "Otro nombre",
+  "code": "OTR"
+}
+
+### Create duplicate code -> 409 Team.CodeAlreadyExists
+POST {{host}}/api/teams
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "name": "Finanzas duplicado",
   "code": "FIN"
 }
 
 ### Create invalid -> 400 with field errors
 POST {{host}}/api/teams
 Content-Type: application/json
+Idempotency-Key: {{$guid}}
 
 {
   "name": "",
   "code": "F-1"
 }
 
-### Get team by id
+### Get team by id -> 200 + ETag header
+# @name getTeam
 GET {{host}}/api/teams/{{createTeam.response.body.id}}
 
-### Replace team (PUT)
+### Replace team (PUT) with If-Match -> 200 (409 Concurrency.Conflict if someone changed it in between)
 PUT {{host}}/api/teams/{{createTeam.response.body.id}}
 Content-Type: application/json
+If-Match: {{getTeam.response.headers.ETag}}
 
 {
   "name": "Finanzas FC",
@@ -65,7 +99,19 @@ Content-Type: application/json
   "isActive": true
 }
 
-### Partial update (PATCH): clear the coach only
+### Replace again with the OLD ETag -> 409 Concurrency.Conflict
+PUT {{host}}/api/teams/{{createTeam.response.body.id}}
+Content-Type: application/json
+If-Match: {{getTeam.response.headers.ETag}}
+
+{
+  "name": "Finanzas FC",
+  "code": "FIN",
+  "coach": "Carlos Ruiz",
+  "isActive": true
+}
+
+### Partial update (PATCH) without If-Match: clear the coach only
 PATCH {{host}}/api/teams/{{createTeam.response.body.id}}
 Content-Type: application/json
 

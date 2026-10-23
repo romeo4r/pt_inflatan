@@ -24,7 +24,8 @@ internal sealed class TeamReadStore(IDbConnectionFactory connectionFactory) : IT
             t.IsActive,
             (SELECT COUNT(*) FROM Players p WHERE p.TeamId = t.Id AND p.IsActive = 1) AS PlayerCount,
             t.CreatedAtUtc,
-            t.UpdatedAtUtc
+            t.UpdatedAtUtc,
+            t.RowVersion
         FROM Teams t
         """;
 

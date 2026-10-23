@@ -11,6 +11,8 @@ namespace Mundialito.Infrastructure.Persistence;
 /// The only place where changes reach the database. One explicit transaction wraps:
 /// audit stamping, SaveChanges, domain event dispatch (handlers may persist more rows)
 /// and the final commit. Any failure rolls everything back, including whatever handlers wrote.
+/// Concurrency and uniqueness rejections come back as <see cref="Result"/> failures (409);
+/// everything else is an infrastructure fault and propagates as an exception.
 /// </summary>
 internal sealed partial class UnitOfWork(
     ApplicationDbContext context,
@@ -21,7 +23,7 @@ internal sealed partial class UnitOfWork(
     /// <summary>Guards against handlers that keep raising events on each other forever.</summary>
     private const int MaxDispatchRounds = 10;
 
-    public async Task<int> CommitAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<int>> CommitAsync(CancellationToken cancellationToken = default)
     {
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
@@ -38,6 +40,18 @@ internal sealed partial class UnitOfWork(
             LogCommitted(logger, affectedRows);
 
             return affectedRows;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            LogConcurrencyConflict(logger);
+            return PersistenceErrors.ConcurrencyConflict;
+        }
+        catch (DbUpdateException exception) when (DbExceptionClassifier.IsUniqueViolation(exception))
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            LogUniqueViolation(logger);
+            return PersistenceErrors.UniqueViolation;
         }
         catch (Exception exception)
         {
@@ -107,6 +121,12 @@ internal sealed partial class UnitOfWork(
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Unit of work committed {AffectedRows} rows")]
     private static partial void LogCommitted(ILogger logger, int affectedRows);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Unit of work rolled back: optimistic concurrency conflict")]
+    private static partial void LogConcurrencyConflict(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Unit of work rolled back: unique constraint violation")]
+    private static partial void LogUniqueViolation(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Unit of work rolled back")]
     private static partial void LogRolledBack(ILogger logger, Exception exception);

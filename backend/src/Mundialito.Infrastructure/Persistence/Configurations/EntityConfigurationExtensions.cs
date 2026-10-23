@@ -16,13 +16,17 @@ internal static class EntityConfigurationExtensions
         return builder;
     }
 
-    /// <summary>Audit columns for entities that track creation and update time.</summary>
+    /// <summary>Audit columns and the optimistic concurrency token for auditable entities.</summary>
     public static EntityTypeBuilder<TEntity> ConfigureAuditable<TEntity>(this EntityTypeBuilder<TEntity> builder)
         where TEntity : AuditableEntity
     {
         builder.ConfigureEntity();
         builder.Property(e => e.CreatedAtUtc).IsRequired();
         builder.Property(e => e.UpdatedAtUtc);
+
+        // SQL Server rowversion: generated on insert and on every update, compared in the WHERE
+        // clause of UPDATE/DELETE so a stale write affects 0 rows and raises a concurrency exception.
+        builder.Property(e => e.RowVersion).IsRowVersion();
 
         return builder;
     }
