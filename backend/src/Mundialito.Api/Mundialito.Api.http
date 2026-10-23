@@ -203,3 +203,90 @@ Content-Type: application/json
 DELETE {{host}}/api/players/{{createPlayer.response.body.id}}
 
 ###
+
+### ---------------- Matches ----------------
+# Needs two teams. Create a second one first:
+# @name createAwayTeam
+POST {{host}}/api/teams
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "name": "Tecnología City",
+  "code": "TEC"
+}
+
+### Schedule a match -> 201 (Idempotency-Key required)
+# @name createMatch
+POST {{host}}/api/matches
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "homeTeamId": "{{createTeam.response.body.id}}",
+  "awayTeamId": "{{createAwayTeam.response.body.id}}",
+  "matchDay": 1,
+  "scheduledAtUtc": "2026-11-07T15:00:00Z",
+  "venue": "Cancha Principal"
+}
+
+### Same team on both sides -> 400 (validator) 
+POST {{host}}/api/matches
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "homeTeamId": "{{createTeam.response.body.id}}",
+  "awayTeamId": "{{createTeam.response.body.id}}",
+  "matchDay": 1,
+  "scheduledAtUtc": "2026-11-07T15:00:00Z"
+}
+
+### Unknown team -> 404 Team.NotFound
+POST {{host}}/api/matches
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "homeTeamId": "{{createTeam.response.body.id}}",
+  "awayTeamId": "0199f000-0000-7000-8000-000000000000",
+  "matchDay": 1,
+  "scheduledAtUtc": "2026-11-07T15:00:00Z"
+}
+
+### List matches: by status and date range
+GET {{host}}/api/matches?status=scheduled&fromUtc=2026-11-01T00:00:00Z&toUtc=2026-11-30T23:59:59Z&sortBy=scheduledAt
+
+### List matches of a team (home or away)
+GET {{host}}/api/matches?teamId={{createTeam.response.body.id}}
+
+### Get match detail (with goals) -> 200 + ETag
+# @name getMatch
+GET {{host}}/api/matches/{{createMatch.response.body.match.id}}
+
+### Reschedule (PUT) with If-Match
+PUT {{host}}/api/matches/{{createMatch.response.body.match.id}}
+Content-Type: application/json
+If-Match: {{getMatch.response.headers.ETag}}
+
+{
+  "matchDay": 2,
+  "scheduledAtUtc": "2026-11-14T15:00:00Z",
+  "venue": "Cancha 2"
+}
+
+### Partial update (PATCH): venue only
+PATCH {{host}}/api/matches/{{createMatch.response.body.match.id}}
+Content-Type: application/json
+
+{
+  "venue": "Polideportivo"
+}
+
+### Cancel -> 200 (repeat: still 200, no change)
+POST {{host}}/api/matches/{{createMatch.response.body.match.id}}/cancel
+
+### Delete -> 204 (repeat: still 204)
+DELETE {{host}}/api/matches/{{createMatch.response.body.match.id}}
+
+###
