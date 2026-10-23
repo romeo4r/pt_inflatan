@@ -34,5 +34,5 @@ public static class PlayerErrors
         "Player.HasGoals", "No se puede eliminar un jugador que tiene goles registrados.");
 
     public static Error NotInTeam(Guid playerId, Guid teamId) => Error.Validation(
-        "Player.NotInTeam", $"El jugador {playerId} no pertenece al equipo {teamId}.");
+        "Player.NotInTeam", $"El jugador {playerId} pertenece al equipo {teamId}, que no participa en este partido.");
 }

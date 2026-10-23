@@ -290,3 +290,46 @@ POST {{host}}/api/matches/{{createMatch.response.body.match.id}}/cancel
 DELETE {{host}}/api/matches/{{createMatch.response.body.match.id}}
 
 ###
+
+### ---------------- Match result ----------------
+# Flow: createTeam + createAwayTeam + createPlayer (home scorer) + createMatch, then:
+
+### Register result 1-0 with the home scorer -> 200 (Idempotency-Key required)
+POST {{host}}/api/matches/{{createMatch.response.body.match.id}}/result
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+If-Match: {{getMatch.response.headers.ETag}}
+
+{
+  "homeScore": 1,
+  "awayScore": 0,
+  "goals": [
+    { "playerId": "{{createPlayer.response.body.id}}", "minute": 33 }
+  ]
+}
+
+### Register again -> 409 Match.AlreadyFinished
+POST {{host}}/api/matches/{{createMatch.response.body.match.id}}/result
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "homeScore": 0,
+  "awayScore": 0,
+  "goals": []
+}
+
+### Goals do not add up to the score -> 400 (validator)
+POST {{host}}/api/matches/{{createMatch.response.body.match.id}}/result
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "homeScore": 2,
+  "awayScore": 0,
+  "goals": [
+    { "playerId": "{{createPlayer.response.body.id}}", "minute": 10 }
+  ]
+}
+
+###

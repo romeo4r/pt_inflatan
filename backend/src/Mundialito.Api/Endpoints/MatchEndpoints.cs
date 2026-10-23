@@ -66,6 +66,15 @@ public sealed class MatchEndpoints : IEndpoint
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
+        group.MapPost("/{id:guid}/result", RegisterResult)
+            .RequireIdempotencyKey()
+            .WithName("RegisterMatchResult")
+            .WithSummary("Registra el marcador final y los goleadores de un partido programado. Requiere Idempotency-Key; acepta If-Match.")
+            .Produces<MatchDetailResponse>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
         group.MapDelete("/{id:guid}", DeleteMatch)
             .WithName("DeleteMatch")
             .WithSummary("Elimina un partido no jugado. Idempotente.")
@@ -152,6 +161,23 @@ public sealed class MatchEndpoints : IEndpoint
         }
 
         var result = await sender.Send(new CancelMatchCommand(id, expectedVersion), cancellationToken);
+
+        return await RespondWithMatch(id, result, sender, cancellationToken);
+    }
+
+    private static async Task<IResult> RegisterResult(
+        Guid id,
+        [FromBody] RegisterMatchResultRequest request,
+        HttpRequest httpRequest,
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        if (!ETag.TryGetExpectedVersion(httpRequest, out var expectedVersion, out var problem))
+        {
+            return problem!;
+        }
+
+        var result = await sender.Send(request.ToCommand(id, expectedVersion), cancellationToken);
 
         return await RespondWithMatch(id, result, sender, cancellationToken);
     }

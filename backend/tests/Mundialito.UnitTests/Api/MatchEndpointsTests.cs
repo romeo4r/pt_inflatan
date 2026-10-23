@@ -6,6 +6,7 @@ using Mundialito.Application.Common.Pagination;
 using Mundialito.Application.Matches;
 using Mundialito.Application.Matches.Commands.CancelMatch;
 using Mundialito.Application.Matches.Commands.DeleteMatch;
+using Mundialito.Application.Matches.Commands.RegisterMatchResult;
 using Mundialito.Application.Matches.Commands.ScheduleMatch;
 using Mundialito.Application.Matches.Queries.GetMatchById;
 using Mundialito.Application.Matches.Queries.GetMatches;
@@ -148,6 +149,69 @@ public sealed class MatchEndpointsTests : IDisposable
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         body.RootElement.GetProperty("code").GetString().ShouldBe("Match.AlreadyFinished");
+    }
+
+    [Fact]
+    public async Task RegisterResult_ShouldBindGoalsAndIfMatchAndReturnDetail()
+    {
+        var detail = SampleDetail();
+        RegisterMatchResultCommand? captured = null;
+        _factory.Sender
+            .Send(Arg.Do<RegisterMatchResultCommand>(c => captured = c), Arg.Any<CancellationToken>())
+            .Returns(Result.Success());
+        _factory.Sender
+            .Send(Arg.Any<GetMatchByIdQuery>(), Arg.Any<CancellationToken>())
+            .Returns(Result.Success(detail));
+        var scorer = Guid.CreateVersion7();
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/matches/{detail.Match.Id}/result")
+        {
+            Content = JsonContent.Create(new
+            {
+                homeScore = 1,
+                awayScore = 0,
+                goals = new[] { new { playerId = scorer, minute = 33 } },
+            }),
+        };
+        request.Headers.Add(IdempotencyMiddleware.HeaderName, "result-key-1");
+        request.Headers.TryAddWithoutValidation("If-Match", "\"AAAAAAAAB9E=\"");
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Headers.ETag.ShouldNotBeNull();
+        captured.ShouldNotBeNull();
+        captured.MatchId.ShouldBe(detail.Match.Id);
+        captured.HomeScore.ShouldBe(1);
+        captured.Goals.ShouldHaveSingleItem().ShouldBe(new GoalInput(scorer, 33));
+        captured.ExpectedRowVersion.ShouldBe([0, 0, 0, 0, 0, 0, 7, 209]);
+    }
+
+    [Fact]
+    public async Task RegisterResult_WithoutGoalsProperty_ShouldSendEmptyList()
+    {
+        RegisterMatchResultCommand? captured = null;
+        _factory.Sender
+            .Send(Arg.Do<RegisterMatchResultCommand>(c => captured = c), Arg.Any<CancellationToken>())
+            .Returns(Result.Failure(MatchErrors.AlreadyFinished));
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/matches/{Guid.CreateVersion7()}/result")
+        {
+            Content = JsonContent.Create(new { homeScore = 0, awayScore = 0 }),
+        };
+        request.Headers.Add(IdempotencyMiddleware.HeaderName, "result-key-2");
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        captured.ShouldNotBeNull().Goals.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task RegisterResult_WithoutIdempotencyKey_ShouldReturn400()
+    {
+        var response = await _client.PostAsJsonAsync($"/api/matches/{Guid.CreateVersion7()}/result", new { homeScore = 0, awayScore = 0 });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        await _factory.Sender.DidNotReceive().Send(Arg.Any<RegisterMatchResultCommand>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
