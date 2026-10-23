@@ -17,11 +17,15 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
 
-    builder.Host.UseSerilog((context, services, configuration) => configuration
-        .ReadFrom.Configuration(context.Configuration)
-        .ReadFrom.Services(services)
-        .Enrich.FromLogContext()
-        .Enrich.WithProperty("Application", "Mundialito.Api"));
+    // preserveStaticLogger: each host gets its own logger instead of reconfiguring the global one.
+    // Without it, a second host in the same process (integration tests) fails with "logger is frozen".
+    builder.Host.UseSerilog(
+        (context, services, configuration) => configuration
+            .ReadFrom.Configuration(context.Configuration)
+            .ReadFrom.Services(services)
+            .Enrich.FromLogContext()
+            .Enrich.WithProperty("Application", "Mundialito.Api"),
+        preserveStaticLogger: true);
 
     var connectionString = builder.Configuration.GetConnectionString("Database")
         ?? throw new InvalidOperationException(

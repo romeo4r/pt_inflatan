@@ -3,6 +3,7 @@ using Mundialito.Application.Abstractions.ReadStores;
 using Mundialito.Application.Common.Pagination;
 using Mundialito.Application.Players;
 using Mundialito.Application.Players.Queries.GetPlayers;
+using Mundialito.Domain.Players;
 
 namespace Mundialito.Infrastructure.ReadModel;
 
@@ -71,7 +72,7 @@ internal sealed class PlayerReadStore(IDbConnectionFactory connectionFactory) : 
         await using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken);
         await using var multi = await connection.QueryMultipleAsync(new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
 
-        var data = (await multi.ReadAsync<PlayerResponse>()).ToList();
+        var data = (await multi.ReadAsync<PlayerRow>()).Select(row => row.ToResponse()).ToList();
         var total = await multi.ReadSingleAsync<int>();
 
         return new PagedResult<PlayerResponse>(data, query.PageNumber, query.PageSize, total);
@@ -86,7 +87,44 @@ internal sealed class PlayerReadStore(IDbConnectionFactory connectionFactory) : 
 
         await using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken);
 
-        return await connection.QuerySingleOrDefaultAsync<PlayerResponse>(
+        var row = await connection.QuerySingleOrDefaultAsync<PlayerRow>(
             new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken));
+
+        return row?.ToResponse();
+    }
+
+    /// <summary>
+    /// Shape of the SQL row. SQL Server returns a <c>date</c> column as DateTime, which Dapper
+    /// cannot feed into a DateOnly constructor parameter, so the conversion happens here.
+    /// </summary>
+    private sealed record PlayerRow(
+        Guid Id,
+        Guid TeamId,
+        string TeamName,
+        string TeamCode,
+        string FirstName,
+        string LastName,
+        int JerseyNumber,
+        int Position,
+        DateTime? BirthDate,
+        bool IsActive,
+        DateTime CreatedAtUtc,
+        DateTime? UpdatedAtUtc,
+        byte[]? RowVersion)
+    {
+        public PlayerResponse ToResponse() => new(
+            Id,
+            TeamId,
+            TeamName,
+            TeamCode,
+            FirstName,
+            LastName,
+            JerseyNumber,
+            (PlayerPosition)Position,
+            BirthDate is null ? null : DateOnly.FromDateTime(BirthDate.Value),
+            IsActive,
+            CreatedAtUtc,
+            UpdatedAtUtc,
+            RowVersion);
     }
 }

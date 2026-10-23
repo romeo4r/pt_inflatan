@@ -16,6 +16,9 @@ public interface IPlayerRepository
         Guid? excludeId = null,
         CancellationToken cancellationToken = default);
 
+    /// <summary>True when the player is credited with at least one goal. Used to block deletion.</summary>
+    Task<bool> HasGoalsAsync(Guid playerId, CancellationToken cancellationToken = default);
+
     void Add(Player player);
 
     void Remove(Player player);

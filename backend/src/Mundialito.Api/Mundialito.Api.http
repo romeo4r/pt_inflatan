@@ -126,3 +126,80 @@ DELETE {{host}}/api/teams/{{createTeam.response.body.id}}
 GET {{host}}/api/teams/{{createTeam.response.body.id}}
 
 ###
+
+### ---------------- Players ----------------
+
+### Register a player in a team -> 201 (Idempotency-Key required)
+# @name createPlayer
+POST {{host}}/api/teams/{{createTeam.response.body.id}}/players
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "firstName": "Carlos",
+  "lastName": "Gómez",
+  "jerseyNumber": 9,
+  "position": "Forward",
+  "birthDate": "1995-05-20"
+}
+
+### Same jersey number in the same team -> 409 Player.JerseyNumberTaken
+POST {{host}}/api/teams/{{createTeam.response.body.id}}/players
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "firstName": "Otro",
+  "lastName": "Jugador",
+  "jerseyNumber": 9,
+  "position": "Defender"
+}
+
+### Invalid player -> 400 with field errors
+POST {{host}}/api/teams/{{createTeam.response.body.id}}/players
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "firstName": "",
+  "lastName": "X",
+  "jerseyNumber": 0,
+  "position": "Striker"
+}
+
+### Players of a team
+GET {{host}}/api/teams/{{createTeam.response.body.id}}/players?sortBy=jerseyNumber
+
+### All players, filtered by position and name
+GET {{host}}/api/players?position=forward&search=gom&pageSize=5
+
+### Get player by id -> 200 + ETag
+# @name getPlayer
+GET {{host}}/api/players/{{createPlayer.response.body.id}}
+
+### Replace player (PUT) with If-Match
+PUT {{host}}/api/players/{{createPlayer.response.body.id}}
+Content-Type: application/json
+If-Match: {{getPlayer.response.headers.ETag}}
+
+{
+  "firstName": "Carlos",
+  "lastName": "Gómez",
+  "jerseyNumber": 10,
+  "position": "Midfielder",
+  "birthDate": "1995-05-20",
+  "isActive": true
+}
+
+### Partial update (PATCH): deactivate only
+PATCH {{host}}/api/players/{{createPlayer.response.body.id}}
+Content-Type: application/json
+
+{
+  "isActive": false
+}
+
+### Delete player -> 204 (repeat: still 204)
+DELETE {{host}}/api/players/{{createPlayer.response.body.id}}
+
+###

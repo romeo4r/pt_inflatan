@@ -54,6 +54,24 @@ public sealed class RepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task PlayerRepository_HasGoals_ShouldReflectRegisteredResults()
+    {
+        await using var context = _factory.CreateContext();
+        var home = Team.Create("Finanzas", "FIN", null).Value;
+        var away = Team.Create("Tecnología", "TEC", null).Value;
+        var scorer = Player.Create(home.Id, "Carlos", "Gómez", 9, PlayerPosition.Forward, null, Today).Value;
+        var benched = Player.Create(home.Id, "Luis", "Pérez", 1, PlayerPosition.Goalkeeper, null, Today).Value;
+        var match = Match.Schedule(home.Id, away.Id, 1, Now, null).Value;
+        match.RegisterResult(1, 0, [new GoalEntry(scorer.Id, home.Id, 10)], Now.AddHours(2));
+        context.AddRange(home, away, scorer, benched, match);
+        await context.SaveChangesAsync();
+        var repository = new PlayerRepository(context);
+
+        (await repository.HasGoalsAsync(scorer.Id)).ShouldBeTrue();
+        (await repository.HasGoalsAsync(benched.Id)).ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task MatchRepository_AnyInvolvingTeam_ShouldDetectHomeAndAway()
     {
         await using var context = _factory.CreateContext();

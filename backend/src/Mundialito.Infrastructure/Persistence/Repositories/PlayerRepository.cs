@@ -31,6 +31,9 @@ internal sealed class PlayerRepository(ApplicationDbContext context) : IPlayerRe
             p => p.TeamId == teamId && p.JerseyNumber == jerseyNumber && (excludeId == null || p.Id != excludeId),
             cancellationToken);
 
+    public Task<bool> HasGoalsAsync(Guid playerId, CancellationToken cancellationToken = default) =>
+        context.Goals.AnyAsync(g => g.PlayerId == playerId, cancellationToken);
+
     public void Add(Player player) => context.Players.Add(player);
 
     public void Remove(Player player) => context.Players.Remove(player);

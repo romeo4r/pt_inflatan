@@ -30,6 +30,9 @@ public static class PlayerErrors
     public static Error JerseyNumberTaken(int number) => Error.Conflict(
         "Player.JerseyNumberTaken", $"El número {number} ya está asignado a otro jugador del equipo.");
 
+    public static readonly Error HasGoals = Error.Conflict(
+        "Player.HasGoals", "No se puede eliminar un jugador que tiene goles registrados.");
+
     public static Error NotInTeam(Guid playerId, Guid teamId) => Error.Validation(
         "Player.NotInTeam", $"El jugador {playerId} no pertenece al equipo {teamId}.");
 }
