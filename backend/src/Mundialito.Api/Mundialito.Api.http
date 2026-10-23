@@ -1,14 +1,82 @@
-@Mundialito.Api_HostAddress = http://localhost:5000
+@host = http://localhost:5000
 
 ### Health (API + database)
-GET {{Mundialito.Api_HostAddress}}/health
+GET {{host}}/health
 Accept: application/json
 
 ### Correlation id round-trip
-GET {{Mundialito.Api_HostAddress}}/health
+GET {{host}}/health
 X-Correlation-Id: demo-123
 
 ### OpenAPI document
-GET {{Mundialito.Api_HostAddress}}/openapi/v1.json
+GET {{host}}/openapi/v1.json
+
+### ---------------- Teams ----------------
+
+### List teams (paged, sorted)
+GET {{host}}/api/teams?pageNumber=1&pageSize=10&sortBy=name&sortDirection=asc
+
+### List teams: search + active filter
+GET {{host}}/api/teams?search=fin&isActive=true
+
+### List teams: invalid sort key -> 400 validation problem
+GET {{host}}/api/teams?sortBy=password
+
+### Create team -> 201 + Location
+# @name createTeam
+POST {{host}}/api/teams
+Content-Type: application/json
+
+{
+  "name": "Finanzas FC",
+  "code": "fin",
+  "coach": "Ana Pérez"
+}
+
+### Create duplicate -> 409
+POST {{host}}/api/teams
+Content-Type: application/json
+
+{
+  "name": "Finanzas FC",
+  "code": "FIN"
+}
+
+### Create invalid -> 400 with field errors
+POST {{host}}/api/teams
+Content-Type: application/json
+
+{
+  "name": "",
+  "code": "F-1"
+}
+
+### Get team by id
+GET {{host}}/api/teams/{{createTeam.response.body.id}}
+
+### Replace team (PUT)
+PUT {{host}}/api/teams/{{createTeam.response.body.id}}
+Content-Type: application/json
+
+{
+  "name": "Finanzas FC",
+  "code": "FIN",
+  "coach": "Luis Mejía",
+  "isActive": true
+}
+
+### Partial update (PATCH): clear the coach only
+PATCH {{host}}/api/teams/{{createTeam.response.body.id}}
+Content-Type: application/json
+
+{
+  "coach": ""
+}
+
+### Delete team -> 204 (repeat: still 204)
+DELETE {{host}}/api/teams/{{createTeam.response.body.id}}
+
+### Get deleted team -> 404
+GET {{host}}/api/teams/{{createTeam.response.body.id}}
 
 ###
