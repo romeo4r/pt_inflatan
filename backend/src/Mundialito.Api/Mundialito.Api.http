@@ -346,3 +346,19 @@ GET {{host}}/api/top-scorers?pageSize=10
 GET {{host}}/api/top-scorers?teamId={{createTeam.response.body.id}}
 
 ###
+
+### ---------------- Audit (domain events) ----------------
+
+### Latest domain events
+GET {{host}}/api/domain-events?pageSize=10
+
+### Events of one aggregate (e.g. the created team)
+GET {{host}}/api/domain-events?aggregateId={{createTeam.response.body.id}}
+
+### Events by type
+GET {{host}}/api/domain-events?eventType=MatchResultRegisteredDomainEvent
+
+### Events of one request (use the X-Correlation-Id returned by any write)
+GET {{host}}/api/domain-events?correlationId=demo-123
+
+###

@@ -203,6 +203,50 @@ namespace Mundialito.Infrastructure.Persistence.Migrations
                     b.ToTable("Teams", (string)null);
                 });
 
+            modelBuilder.Entity("Mundialito.Infrastructure.Persistence.DomainEvents.DomainEventLogRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AggregateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("RecordedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TraceId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AggregateId");
+
+                    b.HasIndex("CorrelationId");
+
+                    b.HasIndex("EventType");
+
+                    b.HasIndex("OccurredAtUtc");
+
+                    b.ToTable("DomainEventLogs", (string)null);
+                });
+
             modelBuilder.Entity("Mundialito.Infrastructure.Persistence.Idempotency.IdempotencyKeyRecord", b =>
                 {
                     b.Property<string>("Key")

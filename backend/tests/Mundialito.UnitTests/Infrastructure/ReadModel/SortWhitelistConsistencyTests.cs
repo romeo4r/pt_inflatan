@@ -1,4 +1,5 @@
 using System.Reflection;
+using Mundialito.Application.DomainEvents.Queries.GetDomainEvents;
 using Mundialito.Application.Matches.Queries.GetMatches;
 using Mundialito.Application.Players.Queries.GetPlayers;
 using Mundialito.Application.Teams.Queries.GetTeams;
@@ -17,6 +18,7 @@ public class SortWhitelistConsistencyTests
         { typeof(TeamReadStore), GetTeamsQuery.SortableFields },
         { typeof(PlayerReadStore), GetPlayersQuery.SortableFields },
         { typeof(MatchReadStore), GetMatchesQuery.SortableFields },
+        { typeof(DomainEventReadStore), GetDomainEventsQuery.SortableFields },
     };
 
     [Theory]

@@ -7,6 +7,7 @@ using Mundialito.Application.Abstractions.ReadStores;
 using Mundialito.Application.Abstractions.Time;
 using Mundialito.Infrastructure.Events;
 using Mundialito.Infrastructure.Persistence;
+using Mundialito.Infrastructure.Persistence.DomainEvents;
 using Mundialito.Infrastructure.Persistence.Idempotency;
 using Mundialito.Infrastructure.Persistence.Repositories;
 using Mundialito.Infrastructure.ReadModel;
@@ -34,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<ITeamRepository, TeamRepository>();
         services.AddScoped<IPlayerRepository, PlayerRepository>();
         services.AddScoped<IMatchRepository, MatchRepository>();
+        services.AddScoped<IDomainEventLogRepository, DomainEventLogRepository>();
 
         // Read side: Dapper.
         services.AddSingleton<IDbConnectionFactory>(new SqlConnectionFactory(connectionString));
@@ -41,6 +43,7 @@ public static class DependencyInjection
         services.AddScoped<IPlayerReadStore, PlayerReadStore>();
         services.AddScoped<IMatchReadStore, MatchReadStore>();
         services.AddScoped<ITournamentReadStore, TournamentReadStore>();
+        services.AddScoped<IDomainEventReadStore, DomainEventReadStore>();
 
         services.AddScoped<IIdempotencyStore, IdempotencyStore>();
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();

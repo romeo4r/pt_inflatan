@@ -4,6 +4,7 @@ using Mundialito.Domain.Common;
 using Mundialito.Domain.Matches;
 using Mundialito.Domain.Players;
 using Mundialito.Domain.Teams;
+using Mundialito.Infrastructure.Persistence.DomainEvents;
 using Mundialito.Infrastructure.Persistence.Idempotency;
 
 namespace Mundialito.Infrastructure.Persistence;
@@ -25,6 +26,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<Goal> Goals => Set<Goal>();
 
     public DbSet<IdempotencyKeyRecord> IdempotencyKeys => Set<IdempotencyKeyRecord>();
+
+    public DbSet<DomainEventLogRecord> DomainEventLogs => Set<DomainEventLogRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

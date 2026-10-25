@@ -4,6 +4,7 @@ using Mundialito.Api.Common;
 using Mundialito.Api.Idempotency;
 using Mundialito.Api.Middleware;
 using Mundialito.Application;
+using Mundialito.Application.Abstractions.Events;
 using Mundialito.Infrastructure;
 using Scalar.AspNetCore;
 using Serilog;
@@ -39,6 +40,10 @@ try
     // Enums travel as their names ("Forward", "Scheduled"), which reads better than integers.
     builder.Services.ConfigureHttpJsonOptions(options =>
         options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+    // Gives the application layer the request ids for the event audit trail.
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddScoped<IRequestContext, HttpRequestContext>();
 
     builder.Services.AddProblemDetails(options =>
         options.CustomizeProblemDetails = context =>

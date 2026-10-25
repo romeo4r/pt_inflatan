@@ -96,6 +96,15 @@ del método, la ruta y el cuerpo, y con la respuesta original.
 
 Las llaves se conservan 24 horas. Un error 5xx libera la llave para permitir el reintento.
 
+### Eventos de dominio y trazabilidad
+
+`TeamCreatedDomainEvent` y `MatchResultRegisteredDomainEvent` se levantan en las entidades y el
+Unit of Work los despacha dentro de la misma transacción que el cambio. Cada evento produce una
+línea de log estructurada y una fila en la tabla `DomainEventLogs` con tipo, agregado, carga JSON,
+`CorrelationId` y `TraceId` de la petición que lo originó. Si la transacción se revierte, el
+evento tampoco queda registrado. La bitácora se consulta en `GET /api/domain-events` con filtros
+por tipo, agregado y correlación.
+
 ### Concurrencia optimista
 
 Teams, Players y Matches tienen una columna `RowVersion` (rowversion de SQL Server). Los GET por
