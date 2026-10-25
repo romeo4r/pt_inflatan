@@ -40,6 +40,7 @@ public static class DependencyInjection
         services.AddScoped<ITeamReadStore, TeamReadStore>();
         services.AddScoped<IPlayerReadStore, PlayerReadStore>();
         services.AddScoped<IMatchReadStore, MatchReadStore>();
+        services.AddScoped<ITournamentReadStore, TournamentReadStore>();
 
         services.AddScoped<IIdempotencyStore, IdempotencyStore>();
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();

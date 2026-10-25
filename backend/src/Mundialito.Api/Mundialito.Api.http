@@ -333,3 +333,16 @@ Idempotency-Key: {{$guid}}
 }
 
 ###
+
+### ---------------- Tournament ----------------
+
+### Standings (points, goal difference, goals for)
+GET {{host}}/api/standings
+
+### Top scorers (paged, dense rank)
+GET {{host}}/api/top-scorers?pageSize=10
+
+### Top scorers of one team
+GET {{host}}/api/top-scorers?teamId={{createTeam.response.body.id}}
+
+###
