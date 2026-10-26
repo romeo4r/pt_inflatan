@@ -11,6 +11,7 @@ using Mundialito.Infrastructure.Persistence.DomainEvents;
 using Mundialito.Infrastructure.Persistence.Idempotency;
 using Mundialito.Infrastructure.Persistence.Repositories;
 using Mundialito.Infrastructure.ReadModel;
+using Mundialito.Infrastructure.Seeding;
 using Mundialito.Infrastructure.Time;
 
 namespace Mundialito.Infrastructure;
@@ -47,6 +48,7 @@ public static class DependencyInjection
 
         services.AddScoped<IIdempotencyStore, IdempotencyStore>();
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+        services.AddScoped<DatabaseSeeder>();
         services.AddSingleton<IClock, SystemClock>();
 
         // Exposed through /health so orchestrators wait for the database before routing traffic.

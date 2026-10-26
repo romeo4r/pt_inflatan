@@ -93,6 +93,13 @@ try
 
     app.MapEndpoints();
 
+    // Wait for the database, optionally migrate, seed when empty; then start serving.
+    await app.Services.InitializeDatabaseAsync(
+        new DatabaseInitializationOptions(
+            ApplyMigrations: builder.Configuration.GetValue("Database:ApplyMigrationsOnStartup", false),
+            Seed: builder.Configuration.GetValue("Database:SeedOnStartup", true)),
+        app.Lifetime.ApplicationStopping);
+
     await app.RunAsync();
 }
 catch (Exception exception) when (exception is not HostAbortedException)

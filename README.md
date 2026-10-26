@@ -59,6 +59,19 @@ Agregar una migración nueva tras cambiar el modelo:
 dotnet ef migrations add <Nombre> --project src/Mundialito.Infrastructure --startup-project src/Mundialito.Api --output-dir Persistence/Migrations
 ```
 
+## Inicialización y datos de prueba
+
+Al arrancar, la API espera a que la base responda (con reintentos, pensado para Docker) y luego:
+
+| Opción (`appsettings` o variable de entorno) | Por defecto | Efecto |
+|---|---|---|
+| `Database:ApplyMigrationsOnStartup` | `false` | Aplica las migraciones pendientes antes de servir tráfico |
+| `Database:SeedOnStartup` | `true` | Si no hay equipos, inserta 4 equipos, 5 jugadores por equipo y 6 partidos (3 con resultado) |
+
+El seed vive en `Infrastructure/Seeding` y usa los mismos agregados y el mismo Unit of Work que
+la API, así que genera eventos de dominio y filas de auditoría igual que una petición real. Con
+él, la tabla de posiciones y los goleadores se pueden consultar de inmediato.
+
 ## Ejecutar el backend
 
 ```bash

@@ -23,6 +23,9 @@ public sealed class ApiTestFactory : WebApplicationFactory<Program>
     {
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:Database", "Server=localhost;Database=Placeholder;User Id=x;Password=x;TrustServerCertificate=True");
+        // No database behind the placeholder: startup must not try to migrate or seed.
+        builder.UseSetting("Database:ApplyMigrationsOnStartup", "false");
+        builder.UseSetting("Database:SeedOnStartup", "false");
         builder.ConfigureTestServices(services =>
         {
             services.AddSingleton(Sender);
