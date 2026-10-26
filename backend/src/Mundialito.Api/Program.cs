@@ -87,11 +87,10 @@ try
     // After routing (so endpoint metadata is known) and after correlation (so its logs carry the ids).
     app.UseMiddleware<IdempotencyMiddleware>();
 
-    if (app.Environment.IsDevelopment())
-    {
-        app.MapOpenApi();
-        app.MapScalarApiReference(options => options.WithTitle("Mundialito API"));
-    }
+    // API docs stay available in every environment: this is an evaluation deliverable, not a
+    // public production system, and the Docker image runs as Production.
+    app.MapOpenApi();
+    app.MapScalarApiReference(options => options.WithTitle("Mundialito API"));
 
     app.MapEndpoints();
 

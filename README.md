@@ -164,7 +164,29 @@ Queda en `http://localhost:3800` y consume la API de `http://localhost:5000` (co
 `NEXT_PUBLIC_API_URL`). Vistas: tabla de posiciones, goleadores, equipos (con integrantes y
 registro), partidos (con filtros y programación) y registro de resultados.
 
-## Variables de entorno (Docker)
+## Docker Compose (todo el sistema con un comando)
+
+```bash
+cp .env.example .env     # ajustar DB_PASSWORD; los puertos tienen valores por defecto
+docker compose up --build
+```
+
+| Servicio | Imagen | Puerto en el host |
+|---|---|---|
+| `db` | SQL Server 2022 | `14333` (no choca con una instancia local en 1433) |
+| `api` | `backend/Dockerfile` (multi-stage, .NET 10) | `5000` → `http://localhost:5000/scalar/v1` |
+| `frontend` | `frontend/Dockerfile` (Next.js standalone) | `3800` → `http://localhost:3800` |
+| `jaeger` | Jaeger (perfil `observability`) | `16686` |
+
+La API espera a que la base esté sana, aplica las migraciones pendientes y siembra los datos de
+prueba; el frontend arranca cuando la API responde en `/health`. Para ver las trazas:
+`docker compose --profile observability up --build` y abrir `http://localhost:16686`.
+
+Detener y conservar los datos: `docker compose down`. Detener y borrar la base:
+`docker compose down -v`.
+
+## Variables de entorno
 
 Copiar `.env.example` a `.env` y ajustar los valores. El archivo `.env` no se versiona y lo
-consume Docker Compose.
+consume Docker Compose. En desarrollo local la API usa user secrets (ver arriba) y el frontend
+`frontend/.env.development`.

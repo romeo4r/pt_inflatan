@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Mundialito.Infrastructure.Persistence;
@@ -10,8 +12,8 @@ namespace Mundialito.Infrastructure;
 public sealed record DatabaseInitializationOptions(bool ApplyMigrations = false, bool Seed = true);
 
 /// <summary>
-/// Startup hook: waits for the database (containers start out of order), optionally applies
-/// pending migrations, then seeds when empty. Called once by the host before serving traffic.
+/// Startup hook: waits for the database server (containers start out of order), optionally
+/// applies pending migrations, then seeds when empty. Called once by the host before serving traffic.
 /// </summary>
 public static partial class DatabaseInitializer
 {
@@ -34,7 +36,7 @@ public static partial class DatabaseInitializer
         var context = provider.GetRequiredService<ApplicationDbContext>();
         var logger = provider.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(DatabaseInitializer));
 
-        await WaitForDatabaseAsync(context, logger, cancellationToken);
+        var databaseExists = await WaitForServerAsync(context, logger, cancellationToken);
 
         if (options.ApplyMigrations)
         {
@@ -45,6 +47,11 @@ public static partial class DatabaseInitializer
                 await context.Database.MigrateAsync(cancellationToken);
             }
         }
+        else if (!databaseExists)
+        {
+            throw new InvalidOperationException(
+                "The database does not exist. Apply the migrations (dotnet ef database update) or enable Database:ApplyMigrationsOnStartup.");
+        }
 
         if (options.Seed)
         {
@@ -53,32 +60,31 @@ public static partial class DatabaseInitializer
         }
     }
 
-    private static async Task WaitForDatabaseAsync(ApplicationDbContext context, ILogger logger, CancellationToken cancellationToken)
+    /// <summary>
+    /// Retries until the server answers. Asking whether the database exists (a query against the
+    /// server, not the database) separates "server not up yet" from "database not created yet",
+    /// which is the normal state of a fresh container before the first migration runs.
+    /// </summary>
+    private static async Task<bool> WaitForServerAsync(ApplicationDbContext context, ILogger logger, CancellationToken cancellationToken)
     {
+        var creator = context.GetService<IRelationalDatabaseCreator>();
+
         for (var attempt = 1; ; attempt++)
         {
             try
             {
-                if (await context.Database.CanConnectAsync(cancellationToken))
-                {
-                    return;
-                }
+                return await creator.ExistsAsync(cancellationToken);
             }
             catch (Exception exception) when (attempt < MaxConnectionAttempts)
             {
                 LogWaiting(logger, attempt, MaxConnectionAttempts, exception.GetType().Name);
             }
 
-            if (attempt >= MaxConnectionAttempts)
-            {
-                throw new InvalidOperationException($"Database was not reachable after {MaxConnectionAttempts} attempts.");
-            }
-
             await Task.Delay(RetryDelay, cancellationToken);
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Database not reachable (attempt {Attempt}/{MaxAttempts}: {Reason}); retrying")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Database server not reachable (attempt {Attempt}/{MaxAttempts}: {Reason}); retrying")]
     private static partial void LogWaiting(ILogger logger, int attempt, int maxAttempts, string reason);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Applying {Count} pending migration(s)")]
