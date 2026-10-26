@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+body {
+  background: #ffffff;
+  color: #171717;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Minimal shared styles: the frontend is functional, not a design deliverable. */
+.btn {
+  @apply rounded border border-gray-400 bg-white px-3 py-1.5 text-sm hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.btn-primary {
+  @apply rounded bg-blue-700 px-3 py-1.5 text-sm text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.input {
+  @apply w-full rounded border border-gray-400 px-2 py-1.5 text-sm;
+}
+
+table th {
+  @apply border-b border-gray-300 bg-gray-50 px-2 py-2 text-left font-medium;
+}
+
+table td {
+  @apply border-b border-gray-200 px-2 py-2;
+}

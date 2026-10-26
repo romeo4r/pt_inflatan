@@ -20,7 +20,7 @@ backend/
   tests/
     Mundialito.UnitTests       # xUnit + Shouldly + NSubstitute (SQLite en memoria para persistencia)
     Mundialito.IntegrationTests# API completa contra SQL Server real (Testcontainers, requiere Docker)
-frontend/                      # Next.js (pendiente)
+frontend/                      # Next.js 16 (App Router, TypeScript, Tailwind); ver frontend/README.md
 docs/                          # diagrama de arquitectura (pendiente)
 postman/                       # colección y entorno (pendiente)
 ```
@@ -151,6 +151,18 @@ id devuelven la cabecera `ETag` y el campo `rowVersion` en el cuerpo. PUT y PATC
 API responde `409 Concurrency.Conflict` y el cliente debe recargar. Sin `If-Match`, la escritura
 procede sin esa verificación. Las violaciones de índice único por carreras concurrentes también
 responden `409` (`Database.UniqueViolation`).
+
+## Ejecutar el frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Queda en `http://localhost:3800` y consume la API de `http://localhost:5000` (configurable con
+`NEXT_PUBLIC_API_URL`). Vistas: tabla de posiciones, goleadores, equipos (con integrantes y
+registro), partidos (con filtros y programación) y registro de resultados.
 
 ## Variables de entorno (Docker)
 
