@@ -22,7 +22,7 @@ backend/
     Mundialito.IntegrationTests# API completa contra SQL Server real (Testcontainers, requiere Docker)
 frontend/                      # Next.js 16 (App Router, TypeScript, Tailwind); ver frontend/README.md
 docs/                          # diagrama de arquitectura (pendiente)
-postman/                       # colección y entorno (pendiente)
+postman/                       # colección (51 peticiones con pruebas) y entornos; ver postman/README.md
 ```
 
 Regla de dependencias (verificada por pruebas de arquitectura):
