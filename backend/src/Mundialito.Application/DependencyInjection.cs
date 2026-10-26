@@ -19,8 +19,10 @@ public static class DependencyInjection
         services.AddImplementationsOfOpenGeneric(typeof(IRequestHandler<,>));
         services.AddImplementationsOfOpenGeneric(typeof(IDomainEventHandler<>));
 
-        // Order matters: logging wraps validation, so failed validations are logged too.
+        // Order matters (outermost first): logging wraps the span, the span wraps validation, so
+        // failed validations are logged and traced too.
         services.AddScoped(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
+        services.AddScoped(typeof(IPipelineBehavior<,>), typeof(TracingBehavior<,>));
         services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
         services.AddValidatorsFromAssembly(AssemblyReference.Assembly, includeInternalTypes: true);

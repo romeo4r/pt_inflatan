@@ -26,6 +26,22 @@ public class DomainEventDispatcherTests
     }
 
     [Fact]
+    public async Task DispatchAsync_ShouldAnnotateTheCurrentTraceSpan()
+    {
+        using var provider = new ServiceCollection().BuildServiceProvider();
+        var dispatcher = new DomainEventDispatcher(provider, NullLogger<DomainEventDispatcher>.Instance);
+        var domainEvent = new TeamCreatedDomainEvent(Guid.CreateVersion7(), "Finanzas", "FIN");
+        using var activity = new System.Diagnostics.Activity("test-request").Start();
+
+        await dispatcher.DispatchAsync([domainEvent], CancellationToken.None);
+
+        var annotation = activity.Events.ShouldHaveSingleItem();
+        annotation.Name.ShouldBe("domain.event");
+        annotation.Tags.ShouldContain(t => t.Key == "domain.event.type" && Equals(t.Value, nameof(TeamCreatedDomainEvent)));
+        annotation.Tags.ShouldContain(t => t.Key == "domain.event.id" && Equals(t.Value, domainEvent.EventId.ToString()));
+    }
+
+    [Fact]
     public async Task DispatchAsync_WithoutHandlers_ShouldNotFail()
     {
         using var provider = new ServiceCollection().BuildServiceProvider();

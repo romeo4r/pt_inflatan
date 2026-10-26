@@ -28,7 +28,7 @@ public class DependencyInjectionTests
             .Select(b => b.GetType().Name)
             .ToArray();
 
-        behaviors.ShouldBe(["LoggingBehavior`2", "ValidationBehavior`2"]);
+        behaviors.ShouldBe(["LoggingBehavior`2", "TracingBehavior`2", "ValidationBehavior`2"]);
     }
 
     public sealed record ProbeCommand : ICommand;

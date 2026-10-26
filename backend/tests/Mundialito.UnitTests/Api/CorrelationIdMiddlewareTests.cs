@@ -49,6 +49,20 @@ public class CorrelationIdMiddlewareTests
     }
 
     [Fact]
+    public async Task Invoke_ShouldTagTheCurrentActivityWithCorrelationId()
+    {
+        using var activity = new System.Diagnostics.Activity("request").Start();
+        var context = new DefaultHttpContext();
+        context.Request.Headers[CorrelationIdMiddleware.CorrelationIdHeader] = "corr-tag";
+        var middleware = new CorrelationIdMiddleware(_ => Task.CompletedTask);
+
+        await middleware.InvokeAsync(context);
+
+        activity.GetTagItem("correlation.id").ShouldBe("corr-tag");
+        context.GetTraceId().ShouldBe(activity.TraceId.ToString());
+    }
+
+    [Fact]
     public async Task Invoke_ShouldExposeTraceIdAndCallNext()
     {
         var context = new DefaultHttpContext();

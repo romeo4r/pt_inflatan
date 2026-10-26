@@ -98,6 +98,26 @@ Cada respuesta incluye las cabeceras `X-Correlation-Id` (se respeta la enviada p
 `X-Trace-Id`. Los errores siguen RFC 9457 (ProblemDetails) con `code` en inglés, mensaje en
 español en `detail`, y `errors` por campo cuando falla la validación.
 
+### Trazas distribuidas (OpenTelemetry)
+
+Cada petición genera una traza con spans anidados: la petición HTTP, cada command o query de la
+capa de aplicación (con el código de error como etiqueta si falla), cada comando SQL (EF Core y
+Dapper) y las llamadas HTTP salientes. Los eventos de dominio aparecen como anotaciones del span
+y el `correlation.id` queda como etiqueta buscable. El `TraceId` de la traza es el mismo que viaja
+en la cabecera `X-Trace-Id` y en los logs.
+
+La exportación usa OTLP y se activa con `OpenTelemetry:OtlpEndpoint` (variable de entorno
+`OpenTelemetry__OtlpEndpoint`). En desarrollo apunta a `http://localhost:4317`; para ver las
+trazas, levantá Jaeger:
+
+```bash
+docker run -d --name jaeger -p 16686:16686 -p 4317:4317 jaegertracing/jaeger:latest
+```
+
+y abrí `http://localhost:16686` con el servicio `Mundialito.Api`. Sin backend disponible la API
+sigue funcionando: las trazas simplemente no se envían. De las sentencias SQL se exporta solo el
+texto parametrizado, nunca los valores de los parámetros.
+
 ### Idempotencia en POST
 
 Los endpoints de creación exigen la cabecera `Idempotency-Key` (1 a 128 caracteres: letras,

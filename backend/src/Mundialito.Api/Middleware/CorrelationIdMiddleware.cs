@@ -25,6 +25,9 @@ public sealed class CorrelationIdMiddleware(RequestDelegate next)
 
         context.Items[CorrelationIdItemKey] = correlationId;
         context.Items[TraceIdItemKey] = traceId;
+
+        // Makes the trace searchable by correlation id in the tracing backend.
+        Activity.Current?.SetTag("correlation.id", correlationId);
         context.Response.Headers[CorrelationIdHeader] = correlationId;
         context.Response.Headers[TraceIdHeader] = traceId;
 

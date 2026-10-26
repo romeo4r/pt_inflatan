@@ -15,6 +15,9 @@ internal static class DispatcherAccessor
     public static readonly Type ValidationBehaviorType =
         Find("Mundialito.Application.Abstractions.Behaviors.ValidationBehavior`2");
 
+    public static readonly Type TracingBehaviorType =
+        Find("Mundialito.Application.Abstractions.Behaviors.TracingBehavior`2");
+
     private static Type Find(string fullName) =>
         global::Mundialito.Application.AssemblyReference.Assembly.GetType(fullName, throwOnError: true)!;
 }

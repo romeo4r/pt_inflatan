@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Mundialito.Api.Common;
 using Mundialito.Api.Idempotency;
 using Mundialito.Api.Middleware;
+using Mundialito.Api.Telemetry;
 using Mundialito.Application;
 using Mundialito.Application.Abstractions.Events;
 using Mundialito.Infrastructure;
@@ -64,6 +65,7 @@ try
         }));
 
     builder.Services.AddOpenApi();
+    builder.Services.AddTelemetry(builder.Configuration);
 
     var app = builder.Build();
 

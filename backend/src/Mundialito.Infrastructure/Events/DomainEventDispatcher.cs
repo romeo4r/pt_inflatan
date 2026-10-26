@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Mundialito.Application.Abstractions.Events;
@@ -23,6 +24,15 @@ internal sealed partial class DomainEventDispatcher(
             var eventType = domainEvent.GetType();
 
             LogDomainEvent(logger, eventType.Name, domainEvent.EventId, domainEvent.OccurredAtUtc);
+
+            // The event also shows up on the current trace span, so Jaeger links it to the request.
+            Activity.Current?.AddEvent(new ActivityEvent(
+                "domain.event",
+                tags: new ActivityTagsCollection
+                {
+                    ["domain.event.type"] = eventType.Name,
+                    ["domain.event.id"] = domainEvent.EventId.ToString(),
+                }));
 
             var invoker = Invokers.GetOrAdd(
                 eventType,
