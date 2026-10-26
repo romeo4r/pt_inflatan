@@ -19,6 +19,7 @@ backend/
     Mundialito.Api             # endpoints REST, middleware, composición
   tests/
     Mundialito.UnitTests       # xUnit + Shouldly + NSubstitute (SQLite en memoria para persistencia)
+    Mundialito.IntegrationTests# API completa contra SQL Server real (Testcontainers, requiere Docker)
 frontend/                      # Next.js (pendiente)
 docs/                          # diagrama de arquitectura (pendiente)
 postman/                       # colección y entorno (pendiente)
@@ -77,9 +78,13 @@ la API, así que genera eventos de dominio y filas de auditoría igual que una p
 ```bash
 cd backend
 dotnet build
-dotnet test
+dotnet test tests/Mundialito.UnitTests          # sin dependencias externas
+dotnet test tests/Mundialito.IntegrationTests   # requiere Docker (levanta SQL Server con Testcontainers)
 dotnet run --project src/Mundialito.Api
 ```
+
+El detalle de qué cubre cada proyecto de pruebas y el mapa contra el enunciado está en
+[backend/tests/README.md](backend/tests/README.md).
 
 La API queda en `http://localhost:5000`.
 
