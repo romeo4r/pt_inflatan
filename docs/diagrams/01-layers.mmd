@@ -1,0 +1,66 @@
+%% Capas de Clean Architecture y regla de dependencias (las flechas apuntan hacia adentro).
+flowchart TB
+    subgraph Clients["Clientes"]
+        FE["Frontend<br/>Next.js 16 (App Router)<br/>cliente HTTP tipado, ProblemDetails,<br/>Idempotency-Key, If-Match"]
+        PM["Postman / newman<br/>51 peticiones con aserciones"]
+    end
+
+    subgraph Api["Mundialito.Api (composición y HTTP)"]
+        EP["Minimal API endpoints<br/>Teams · Players · Matches · Tournament · Audit"]
+        MW["Middleware<br/>CorrelationId/TraceId · Idempotency-Key<br/>ProblemDetails (RFC 9457) · ExceptionHandler"]
+        TEL["Serilog (JSON) · OpenTelemetry (OTLP)"]
+    end
+
+    subgraph App["Mundialito.Application (casos de uso)"]
+        SND["ISender → Dispatcher"]
+        BEH["Pipeline: Logging → Tracing → Validation"]
+        CMD["Commands (escritura)<br/>Create/Update/Patch/Delete<br/>ScheduleMatch · RegisterMatchResult"]
+        QRY["Queries (lectura)<br/>GetTeams · GetMatches · GetStandings<br/>GetTopScorers · GetDomainEvents"]
+        EVH["Domain event handlers<br/>TeamCreated · MatchResultRegistered"]
+        CTR["Contratos: IUnitOfWork · IRepositories<br/>IReadStores · IIdempotencyStore · IClock"]
+    end
+
+    subgraph Dom["Mundialito.Domain (núcleo)"]
+        AGG["Agregados: Team · Player · Match(+Goal)"]
+        RES["Result / Result&lt;T&gt; / Error"]
+        DEV["Domain events"]
+        STD["StandingsCalculator (puro)"]
+    end
+
+    subgraph Infra["Mundialito.Infrastructure (detalles técnicos)"]
+        EF["EF Core 10 (write side)<br/>ApplicationDbContext · repositorios<br/>migraciones · RowVersion"]
+        UOW["UnitOfWork<br/>transacción · auditoría · despacho de eventos<br/>409 por concurrencia / índice único"]
+        DAP["Dapper (read side)<br/>SQL parametrizado · OFFSET/FETCH<br/>whitelist de ordenamiento"]
+        IDS["IdempotencyStore<br/>tabla IdempotencyKeys"]
+        ELG["DomainEventLogRepository<br/>tabla DomainEventLogs"]
+        SEED["DatabaseInitializer + Seeder"]
+    end
+
+    DB[("SQL Server 2022<br/>Teams · Players · Matches · Goals<br/>IdempotencyKeys · DomainEventLogs")]
+
+    FE -->|HTTP/JSON| EP
+    PM -->|HTTP/JSON| EP
+    EP --> MW --> SND --> BEH
+    BEH --> CMD
+    BEH --> QRY
+    CMD --> AGG
+    CMD --> CTR
+    QRY --> CTR
+    UOW -.->|despacha| EVH
+    EVH --> ELG
+    AGG --> RES
+    AGG --> DEV
+    QRY --> STD
+    EF -. implementa .-> CTR
+    DAP -. implementa .-> CTR
+    IDS -. implementa .-> CTR
+    EF --> DB
+    UOW --> EF
+    DAP --> DB
+    IDS --> DB
+    ELG --> DB
+    SEED --> UOW
+    MW --> IDS
+
+    classDef layer fill:#f5f7fa,stroke:#4a5568,stroke-width:1px,color:#1a202c;
+    class FE,PM,EP,MW,TEL,SND,BEH,CMD,QRY,EVH,CTR,AGG,RES,DEV,STD,EF,UOW,DAP,IDS,ELG,SEED layer;

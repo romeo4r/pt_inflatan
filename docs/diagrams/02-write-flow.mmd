@@ -1,0 +1,43 @@
+%% Flujo de un command (POST /api/matches/{id}/result): idempotencia, CQRS, Unit of Work, eventos y trazas.
+sequenceDiagram
+    autonumber
+    participant C as Cliente (Next.js / Postman)
+    participant M as Middleware<br/>CorrelationId · Idempotency
+    participant E as Endpoint
+    participant S as ISender + Pipeline<br/>Logging · Tracing · Validation
+    participant H as RegisterMatchResultHandler
+    participant R as Repositorios (EF Core)
+    participant U as UnitOfWork
+    participant X as Event handlers
+    participant D as SQL Server
+    participant Q as Read store (Dapper)
+
+    C->>M: POST /result<br/>Idempotency-Key, If-Match, X-Correlation-Id
+    M->>M: TraceId + CorrelationId → LogContext y span
+    M->>D: INSERT IdempotencyKeys (reserva atómica)
+    alt llave ya completada
+        M-->>C: respuesta original guardada<br/>(Idempotent-Replayed: true)
+    else llave nueva
+        M->>E: continúa
+        E->>S: Send(RegisterMatchResultCommand)
+        S->>S: log inicio · span "command ..." · FluentValidation
+        S->>H: Handle
+        H->>R: GetByIdAsync(match) · GetByIdsAsync(players)
+        R->>D: SELECT (tracking)
+        H->>H: If-Match vs RowVersion · scorers ∈ equipos
+        H->>H: match.RegisterResult(...) → Result<br/>levanta MatchResultRegisteredDomainEvent
+        H->>U: CommitAsync()
+        U->>D: BEGIN TRAN · UPDATE Matches (WHERE RowVersion=…) · INSERT Goals
+        U->>X: Dispatch(MatchResultRegistered)
+        X->>X: log estructurado · anotación en el span
+        X->>D: INSERT DomainEventLogs (misma transacción)
+        U->>D: COMMIT
+        U-->>H: Result.Success / 409 Conflict
+        H-->>S: Result
+        S-->>E: Result (log fin · span con error code si falló)
+        E->>Q: GetMatchByIdQuery (Dapper)
+        Q->>D: SELECT (sin tracking)
+        E-->>M: 200 + MatchDetail + ETag  (o ProblemDetails)
+        M->>D: UPDATE IdempotencyKeys (respuesta)
+        M-->>C: respuesta + X-Correlation-Id + X-Trace-Id
+    end

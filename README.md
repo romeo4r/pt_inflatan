@@ -21,13 +21,41 @@ backend/
     Mundialito.UnitTests       # xUnit + Shouldly + NSubstitute (SQLite en memoria para persistencia)
     Mundialito.IntegrationTests# API completa contra SQL Server real (Testcontainers, requiere Docker)
 frontend/                      # Next.js 16 (App Router, TypeScript, Tailwind); ver frontend/README.md
-docs/                          # diagrama de arquitectura (pendiente)
+docs/                          # ARCHITECTURE.md con diagramas (capas, flujo, observabilidad, despliegue) + SVG
 postman/                       # colección (51 peticiones con pruebas) y entornos; ver postman/README.md
 ```
 
 Regla de dependencias (verificada por pruebas de arquitectura):
 `Domain` no depende de nadie, `Application` solo de `Domain`, `Infrastructure` implementa los
 contratos de `Application`, y `Api` solo compone y orquesta.
+
+## Arquitectura
+
+El documento [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) contiene los diagramas (capas y
+dependencias, flujo de un command con idempotencia y Unit of Work, observabilidad, despliegue en
+Docker), el modelo de datos y las decisiones de diseño con sus alternativas.
+
+![Capas](docs/diagrams/01-layers.svg)
+
+## Criterios de evaluación: dónde está cada cosa
+
+| Criterio | Implementación | Verificación |
+|---|---|---|
+| Clean Architecture | 4 proyectos con referencias unidireccionales (`backend/src`) | `Architecture/LayerDependencyTests` |
+| CQRS | `ICommand`/`IQuery`, handlers separados, dispatcher propio (`Application/Abstractions/Messaging`) | `Architecture/CqrsSeparationTests` |
+| EF Core (escritura) | `Infrastructure/Persistence`: DbContext, configuraciones, repositorios, 3 migraciones | `UnitOfWorkTests`, integración |
+| Dapper (lectura) | `Infrastructure/ReadModel`: SQL parametrizado, paginación en BD, whitelist de orden | `SqlQueryHelpersTests`, `SortWhitelistConsistencyTests`, integración |
+| Unit of Work | `Infrastructure/Persistence/UnitOfWork.cs`: transacción, auditoría, eventos, 409 | `UnitOfWorkTests`, `DomainEventTraceabilityTests` |
+| Result Pattern | `Domain/Common/Result.cs`, mapeo HTTP en `Api/Common/ResultExtensions.cs` | `ResultTests`, `ResultExtensionsTests` |
+| REST + idempotencia | Endpoints por módulo en `Api/Endpoints`; `Api/Idempotency` + tabla `IdempotencyKeys` | `IdempotencyMiddlewareTests`, `IdempotencyStoreTests`, Postman carpeta 2 |
+| Observabilidad | Serilog JSON, `CorrelationIdMiddleware`, OpenTelemetry (`Api/Telemetry`), `DomainEventLogs` | `CorrelationIdMiddlewareTests`, `TracingBehaviorTests`, Jaeger |
+| Lógica del torneo | `Domain/Tournament/StandingsCalculator.cs`, goleadores en `TournamentReadStore` | `StandingsCalculatorTests`, integración |
+| Filtros y paginación | `PagedQueryValidator`, `PagedResult`, read stores | `PagedResultTests`, `QueryValidatorTests`, Postman |
+| Tests | 333 unitarias + 11 de integración (Testcontainers) | `backend/tests/README.md` |
+| Seed | `Infrastructure/Seeding/DatabaseSeeder.cs` al iniciar si la BD está vacía | `DatabaseSeederTests` |
+| Frontend | `frontend/` Next.js 16 con cliente desacoplado | `npm run build`, `npm run lint` |
+| Docker | `backend/Dockerfile`, `frontend/Dockerfile`, `docker-compose.yml` | `docker compose up --build` |
+| Postman | `postman/` 51 peticiones con 160 aserciones | `newman run` |
 
 ## Requisitos
 

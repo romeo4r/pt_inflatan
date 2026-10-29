@@ -1,0 +1,18 @@
+%% Un identificador, tres destinos: logs, trazas y auditoría de eventos.
+flowchart LR
+    REQ["Petición HTTP<br/>X-Correlation-Id (opcional)"] --> MW["CorrelationIdMiddleware<br/>CorrelationId + TraceId (Activity)"]
+
+    MW --> LOG["Serilog<br/>LogContext: CorrelationId, TraceId<br/>JSON compacto (producción)"]
+    MW --> SPAN["OpenTelemetry<br/>span HTTP → span command/query → spans SQL<br/>tag correlation.id · error.code"]
+    MW --> RC["IRequestContext<br/>(expuesto a Application)"]
+
+    RC --> EVH["Domain event handlers"]
+    EVH --> ELOG["DomainEventLogs<br/>EventId · tipo · agregado · payload JSON<br/>CorrelationId · TraceId"]
+    EVH --> LOG
+    EVH -.->|ActivityEvent domain.event| SPAN
+
+    SPAN -->|OTLP 4317| JAE["Jaeger<br/>(perfil observability)"]
+    LOG --> CON["stdout / docker logs"]
+    ELOG --> AUD["GET /api/domain-events<br/>filtro por correlationId / agregado / tipo"]
+
+    MW --> RESP["Respuesta<br/>X-Correlation-Id · X-Trace-Id<br/>ProblemDetails con correlationId y traceId"]

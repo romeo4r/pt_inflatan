@@ -1,0 +1,23 @@
+%% docker compose up --build
+flowchart LR
+    subgraph Host["Máquina anfitriona"]
+        B["Navegador<br/>http://localhost:3800"]
+        P["Postman / curl<br/>http://localhost:5000"]
+        J["Jaeger UI<br/>http://localhost:16686"]
+    end
+
+    subgraph Compose["docker compose (red mundialito_default)"]
+        FE["frontend<br/>node:24-alpine · Next.js standalone<br/>:3800 · healthcheck /standings"]
+        API["api<br/>aspnet:10.0 · Mundialito.Api<br/>:8080 · healthcheck /health<br/>ApplyMigrationsOnStartup · SeedOnStartup"]
+        DB[("db<br/>mssql/server:2022<br/>:1433 · healthcheck sqlcmd<br/>volumen mssql-data")]
+        JG["jaeger (perfil observability)<br/>OTLP :4317 · UI :16686"]
+    end
+
+    B -->|3800| FE
+    B -->|"5000 (fetch desde el navegador)"| API
+    P -->|5000| API
+    J -->|16686| JG
+    FE -. "depends_on: api healthy" .-> API
+    API -. "depends_on: db healthy" .-> DB
+    API -->|"Server=db,1433"| DB
+    API -->|"OTLP http://jaeger:4317"| JG
